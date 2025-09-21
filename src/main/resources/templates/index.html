@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>アーティスト情報</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2rem; }
+        h1 { color: #333; }
+        ul { list-style-type: none; padding: 0; }
+        li { background: #f4f4f4; margin: 0.5rem 0; padding: 1rem; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+    <h1>アーティスト一覧</h1>
+    <ul id="artist-list"></ul>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            fetch('http://localhost:8080/api/v1/artists')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('ネットワークエラーが発生しました。');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const artistList = document.getElementById('artist-list');
+                    data.forEach(artist => {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = `ID: ${artist.id}, 名前: ${artist.name}`;
+                        artistList.appendChild(listItem);
+                    });
+                })
+                .catch(error => {
+                    console.error('データの取得に失敗しました:', error);
+                    const listElement = document.getElementById('artist-list');
+                    listElement.innerHTML = `<li>データの取得中にエラーが発生しました。</li>`;
+                });
+        });
+    </script>
+
+</body>
+</html>

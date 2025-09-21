@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>LiveNote ホーム</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2rem; background-color: #f0f2f5; }
+        .container { max-width: 800px; margin: auto; padding: 20px; background: #fff; border-radius: 8px; box-sizing: border-box; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 {
+            color: #1976d2;
+            font-size: 1.6rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin-bottom: 18px;
+            background: linear-gradient(90deg, #e3f0fc 0%, #f7fafc 100%);
+            border-radius: 6px;
+            padding: 10px 18px;
+            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.07);
+            text-align: left;
+            display: inline-block;
+        }
+        h2 { color: #333; }
+        ul { list-style-type: none; padding: 0; }
+        li { background: #f9f9f9; margin-bottom: 10px; padding: 15px; border-radius: 5px; border: 1px solid #ddd; position: relative; box-sizing: border-box; word-break: break-all; }
+        .toggle-favorite-news { width: 50%; min-width: 80px; max-width: 300px; box-sizing: border-box; font-size: 1.05rem; padding: 8px 0; }
+        img { max-width: 100%; height: auto; display: block; margin: 8px 0; border-radius: 4px; }
+        .back-btn { margin-bottom: 20px; padding:10px 20px; font-size:16px; }
+        #welcome-bar { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+        #welcome { font-size: 1.2rem; }
+        #go-favorites {
+            background: #1976d2;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 24px;
+            font-size: 1rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        #go-favorites:hover {
+            background: #155a8a;
+        }
+        @media (max-width: 600px) {
+            body { margin: 0.5rem; }
+            .container { padding: 8px; }
+            li { padding: 8px; }
+            h1, h2 { font-size: 1.2rem; }
+            .back-btn { font-size: 1rem; padding: 8px 12px; }
+            .toggle-favorite-news { width: 50%; min-width: 60px; font-size: 0.95rem; padding: 6px 0; }
+            #go-favorites { padding: 8px 16px; font-size: 0.9rem; }
+        }
+    </style>
+    <script>
+const currentUser = localStorage.getItem('currentUser');
+let currentPage = 1;
+let lastArtistIds = '';
+const PAGE_LINK_RANGE = 5;
+let isLastPage = false;
+// 未ログインならlogin.htmlへ
+if (!currentUser) {
+    window.location.href = 'login.html';
+}
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>LiveNote ホーム画面</h1>
+        <div id="welcome-bar">
+            <div id="welcome"></div>
+            <button id="go-favorites">★ お気に入り記事一覧</button>
+        </div>
+        <div style="margin-top:20px;">
+        </div>
+        <div class="news">
+            <h2>新着ニュース</h2>
+            <form id="search-form" style="margin-bottom:15px;display:flex;gap:10px;">
+                <input type="text" id="search-keyword" placeholder="キーワードで検索（例：jpop, kpop, アーティスト名など）" style="flex:1;">
+                <button type="submit">検索</button>
+            </form>
+            <label for="artist-select">ジャンル絞り込み：</label>
+            <select id="artist-select">
+                <option value="all">すべて</option>
+                <option value="jpop">jpopのみ</option>
+                <option value="kpop">kpopのみ</option>
+            </select>
+            <ul id="news-list"></ul>
+            <div id="paging" style="text-align:center;margin-top:30px;">
+                <button id="prev-page">前へ</button>
+                <span id="page-numbers"></span>
+                <button id="next-page">次へ</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        const NEWS_API = 'http://localhost:8080/api/v1/news';
+        const FAVORITE_API = 'http://localhost:8080/api/v1/favorite-artists';
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('welcome').textContent = 'ようこそ、' + currentUser + ' さん';
+
+            // プルダウン選択のみでニュース表示切り替え
+            const artistSelect = document.getElementById('artist-select');
+            if (artistSelect) {
+                artistSelect.onchange = function() {
+                    if (this.value === 'all') {
+                        fetchNews('all');
+                    } else if (this.value === 'jpop') {
+                        fetchNews('jpop');
+                    } else if (this.value === 'kpop') {
+                        fetchNews('kpop');
+                    }
+                };
+            }
+
+            // キーワード検索フォーム
+            const searchForm = document.getElementById('search-form');
+            if (searchForm) {
+                searchForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const keyword = document.getElementById('search-keyword').value.trim();
+                    if (keyword) {
+                        fetchNews(keyword);
+                    } else {
+                        fetchNews('all');
+                    }
+                });
+            }
+
+            // 初期表示は「すべて」
+            fetchNews('all');
+
+            // お気に入り記事一覧ボタン
+            const goFavoritesBtn = document.getElementById('go-favorites');
+            if (goFavoritesBtn) {
+                goFavoritesBtn.onclick = function() {
+                    window.location.href = 'favorites.html';
+                };
+            }
+
+            // ページングボタン
+            const prevPageBtn = document.getElementById('prev-page');
+            if (prevPageBtn) {
+                prevPageBtn.onclick = function() {
+                    if (currentPage > 1) {
+                        fetchNews(lastArtistIds, currentPage - 1);
+                    }
+                };
+            }
+            const nextPageBtn = document.getElementById('next-page');
+            if (nextPageBtn) {
+                nextPageBtn.onclick = function() {
+                    if (!isLastPage) {
+                        fetchNews(lastArtistIds, currentPage + 1);
+                    }
+                };
+            }
+        });
+
+        // お気に入りニュースID一覧取得
+        function fetchFavoriteNewsIds(callback) {
+            fetch('http://localhost:8080/api/v1/favorite-news/list?user=' + encodeURIComponent(currentUser))
+                .then(res => res.json())
+                .then(list => {
+                    // お気に入り記事の一意キー（title+url+artistName）で判定
+                    const ids = new Set(list.map(news => news.title + news.url + news.artistName));
+                    callback(ids);
+                })
+                .catch(() => callback(new Set()));
+        }
+
+        // ニュース表示（新着順・ページング対応）
+        function fetchNews(artistIds, page = 1) {
+            lastArtistIds = artistIds;
+            currentPage = page;
+            let artistName = '';
+            if (artistIds === 'all') {
+                artistName = 'jpop,kpop';
+            } else if (artistIds === 'jpop') {
+                artistName = 'jpop';
+            } else if (artistIds === 'kpop') {
+                artistName = 'kpop';
+            }
+            const apiUrl = NEWS_API + '/external?artistName=' + encodeURIComponent(artistName) + '&page=' + page;
+            fetchFavoriteNewsIds(function(favoriteIds) {
+                fetch(apiUrl)
+                    .then(res => res.json())
+                    .then(newsList => {
+                        lastNewsListLength = newsList.length;
+                        isLastPage = newsList.length < 20;
+                        const ul = document.getElementById('news-list');
+                        ul.innerHTML = '';
+                        if (newsList.length === 0) {
+                            ul.innerHTML = '<li>ニュースがありません</li>';
+                            renderPageNumbers(page);
+                            return;
+                        }
+                        newsList.sort((a, b) => new Date(b.date) - new Date(a.date));
+                        newsList.forEach(news => {
+                            const li = document.createElement('li');
+                            let d = new Date(news.date);
+                            let jpDate = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 ${d.getHours()}時${d.getMinutes()}分`;
+                            const key = news.title + news.url + news.artistName;
+                            const isFavorite = favoriteIds.has(key);
+                            const btn = document.createElement('button');
+                            btn.className = 'toggle-favorite-news';
+                            btn.style.marginTop = '8px';
+                            btn.textContent = isFavorite ? '★ お気に入り解除' : '☆ お気に入り追加';
+                            btn.style.background = isFavorite ? '#ffe066' : '#eee';
+                            btn.style.color = isFavorite ? '#d17b00' : '#333';
+                            li.innerHTML = `<strong>タイトル：${news.title}</strong><br>リンク：<a href="${news.url}" target="_blank">${news.url}</a><br>${news.artistName ? `<img src='${news.artistName}' alt='ニュース画像' style='max-width:300px;display:block;margin:8px 0;'>` : ''}<span style="color:#888;">日付：${jpDate}</span><br>`;
+                            li.appendChild(btn);
+                            ul.appendChild(li);
+                            btn.onclick = function() {
+                                const payload = {
+                                    user: currentUser,
+                                    title: news.title,
+                                    url: news.url,
+                                    date: news.date,
+                                    artistName: news.artistName
+                                };
+                                fetch('http://localhost:8080/api/v1/favorite-news/toggle', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(payload)
+                                })
+                                .then(res => res.json())
+                                .then(result => {
+                                    if (result.result === 'added') {
+                                        btn.textContent = '★ お気に入り解除';
+                                        btn.style.background = '#ffe066';
+                                        btn.style.color = '#d17b00';
+                                    } else if (result.result === 'removed') {
+                                        btn.textContent = '☆ お気に入り追加';
+                                        btn.style.background = '#eee';
+                                        btn.style.color = '#333';
+                                    }
+                                })
+                                .catch(() => {
+                                    alert('お気に入り通信エラー');
+                                });
+                            };
+                        });
+                        renderPageNumbers(page);
+                    })
+                    .catch(() => {
+                        document.getElementById('news-list').innerHTML = '<li>ニュース取得エラー</li>';
+                        renderPageNumbers(page);
+                    });
+            });
+        }
+
+        // お気に入りアーティスト一覧取得・表示
+        function fetchFavorites() {
+            fetch(FAVORITE_API + '/list?user=' + encodeURIComponent(currentUser))
+                .then(res => res.json())
+                .then(list => {
+                    const ul = document.getElementById('favorite-list');
+                    ul.innerHTML = '';
+                    if (!list || list.length === 0) {
+                        ul.innerHTML = '<li>お気に入りアーティストはありません</li>';
+                        return;
+                    }
+                    list.forEach(artist => {
+                        const li = document.createElement('li');
+                        li.textContent = `ID: ${artist.id} / 名前: ${artist.name}`;
+                        const btn = document.createElement('button');
+                        btn.textContent = '削除';
+                        btn.className = 'remove-favorite';
+                        btn.setAttribute('data-id', artist.id);
+                        btn.style.marginLeft = '10px';
+                        li.appendChild(btn);
+                        ul.appendChild(li);
+                    });
+                })
+                .catch(() => {
+                    document.getElementById('favorite-list').innerHTML = '<li>取得エラー</li>';
+                });
+        }
+
+        // ページ番号リンク生成・表示
+        function renderPageNumbers(page) {
+            let container = document.getElementById('page-numbers');
+            container.innerHTML = '';
+            let maxPage = isLastPage ? currentPage : currentPage + PAGE_LINK_RANGE;
+            for (let i = 1; i <= maxPage; i++) {
+                const span = document.createElement('span');
+                span.textContent = i;
+                span.style.cursor = 'pointer';
+                span.style.margin = '0 4px';
+                if (i === page) {
+                    span.style.fontWeight = 'bold';
+                    span.style.color = '#1976d2';
+                    span.style.textDecoration = 'underline';
+                }
+                span.onclick = function() {
+                    if (i !== currentPage) {
+                        fetchNews(lastArtistIds, i);
+                    }
+                };
+                container.appendChild(span);
+            }
+            document.getElementById('prev-page').style.display = (page > 1) ? '' : 'none';
+            document.getElementById('next-page').style.display = (!isLastPage) ? '' : 'none';
+        }
+
+        // 初期表示
+        fetchFavorites();
+    </script>
+</body>
+</html>

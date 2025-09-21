@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <script>
+        // index.htmlにアクセスしたら必ずlogin.htmlへリダイレクト
+        window.location.href = 'login.html';
+    </script>
+    <title>LiveNote アプリケーション</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2rem; background-color: #f0f2f5; }
+        .container { max-width: 800px; margin: auto; padding: 20px; background: #fff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1, h2 { color: #333; }
+        ul { list-style-type: none; padding: 0; }
+        li { background: #f9f9f9; margin-bottom: 10px; padding: 15px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #ddd; }
+        form { margin-top: 20px; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
+        input[type="text"] { width: calc(100% - 22px); padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; color: #fff; background-color: #007bff; }
+        button.edit { background-color: #ffc107; margin-right: 5px; }
+        button.delete { background-color: #dc3545; }
+        .success { color: green; margin-top: 10px; }
+        .error { color: red; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>ユーザー認証</h2>
+        <form id="signup-form">
+            <input type="text" id="signup-username" placeholder="ユーザー名" required>
+            <input type="password" id="signup-password" placeholder="パスワード" required>
+            <button type="submit">サインアップ</button>
+        </form>
+        <div id="signup-message"></div>
+        <form id="login-form" style="margin-top:10px;">
+            <input type="text" id="login-username" placeholder="ユーザー名" required>
+            <input type="password" id="login-password" placeholder="パスワード" required>
+            <button type="submit">ログイン</button>
+        </form>
+        <div id="login-message"></div>
+        <div id="auth-status" style="margin-top:10px;"></div>
+        <h1>LiveNote アプリケーション</h1>
+
+        <h2>アーティスト追加</h2>
+        <form id="add-artist-form">
+            <input type="text" id="add-name" placeholder="アーティスト名" required>
+            <input type="text" id="add-spotifyId" placeholder="Spotify ID" required>
+            <button type="submit">追加</button>
+        </form>
+        <div id="add-message"></div>
+
+        <h2>アーティスト一覧</h2>
+        <ul id="artist-list"></ul>
+        <form id="edit-artist-form" style="display:none; margin-top:20px;">
+            <h2>アーティスト編集</h2>
+            <input type="hidden" id="edit-id">
+            <input type="text" id="edit-name" placeholder="アーティスト名" required>
+            <input type="text" id="edit-spotifyId" placeholder="Spotify ID" required>
+            <button type="submit">更新</button>
+            <button type="button" id="edit-cancel">キャンセル</button>
+            <div id="edit-message"></div>
+        </form>
+        <h2>アーティスト詳細</h2>
+        <form id="get-artist-form" style="margin-top:20px;">
+            <input type="text" id="get-artist-id" placeholder="アーティストID" required>
+            <button type="submit">取得</button>
+        </form>
+        <div id="artist-detail"></div>
+
+        <h2>アルバム一覧</h2>
+        <ul id="album-list"></ul>
+        <form id="add-album-form">
+            <input type="text" id="add-album-title" placeholder="アルバム名" required>
+            <input type="text" id="add-album-artistId" placeholder="アーティストID" required>
+            <button type="submit">追加</button>
+        </form>
+        <div id="add-album-message"></div>
+        <form id="edit-album-form" style="display:none; margin-top:20px;">
+            <h2>アルバム編集</h2>
+            <input type="hidden" id="edit-album-id">
+            <input type="text" id="edit-album-title" placeholder="アルバム名" required>
+            <input type="text" id="edit-album-artistId" placeholder="アーティストID" required>
+            <button type="submit">更新</button>
+            <button type="button" id="edit-album-cancel">キャンセル</button>
+            <div id="edit-album-message"></div>
+        </form>
+
+        <h2>曲一覧</h2>
+        <ul id="song-list"></ul>
+        <form id="add-song-form">
+            <input type="text" id="add-song-title" placeholder="曲名" required>
+            <input type="text" id="add-song-artistId" placeholder="アーティストID" required>
+            <button type="submit">追加</button>
+        </form>
+        <div id="add-song-message"></div>
+    </div>
+
+    <script>
+        // ...existing code...
+        // 必要なAPI定数・関数のみ残し、重複や未使用部分を削除
+        // ...existing code...
+    </script>
+</body>
+</html>
